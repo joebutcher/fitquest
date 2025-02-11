@@ -16,12 +16,14 @@ function SignupPage() {
     setFormData({...formData, [e.target.name]: e.target.value});
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (signup(formData)) {
+    setError('');
+    const success = await signup(formData);
+    if (success) {
       navigate('/dashboard');
     } else {
-      setError('Error signing up');
+      setError('Error creating account. Email might be already in use.');
     }
   };
 

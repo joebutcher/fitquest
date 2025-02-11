@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { workoutService } from '../services/workoutService';
 
 function WorkoutLog() {
   const [workouts, setWorkouts] = useState([]);
@@ -9,15 +10,27 @@ function WorkoutLog() {
     notes: ''
   });
 
+  useEffect(() => {
+    loadWorkouts();
+  }, []);
+
+  const loadWorkouts = async () => {
+    const userWorkouts = await workoutService.getUserWorkouts();
+    setWorkouts(userWorkouts);
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleAddWorkout = (e) => {
+  const handleAddWorkout = async (e) => {
     e.preventDefault();
     if (formData.type && formData.duration && formData.intensity) {
-      setWorkouts([...workouts, { ...formData, date: new Date().toISOString() }]);
-      setFormData({ type: '', duration: '', intensity: '', notes: '' });
+      const success = await workoutService.addWorkout(formData);
+      if (success) {
+        await loadWorkouts();
+        setFormData({ type: '', duration: '', intensity: '', notes: '' });
+      }
     }
   };
 

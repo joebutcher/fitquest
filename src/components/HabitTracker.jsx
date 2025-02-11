@@ -1,26 +1,81 @@
 import React, { useState, useEffect } from 'react';
+import { habitService } from '../services/habitService';
 
 function HabitTracker() {
-  // Load habits from localStorage on initial render
-  const loadHabits = () => {
-    const saved = localStorage.getItem('habits');
-    return saved ? JSON.parse(saved) : [];
-  };
-
-  const [habits, setHabits] = useState(loadHabits);
+  const [habits, setHabits] = useState([]);
   const [newHabitData, setNewHabitData] = useState({
     name: '',
-    startDate: new Date().toISOString().split('T')[0] // Today's date as default
+    startDate: new Date().toISOString().split('T')[0]
   });
   const [editingHabit, setEditingHabit] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Save habits to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('habits', JSON.stringify(habits));
-  }, [habits]);
+    loadHabits();
+  }, []);
 
-  // Get array of last 7 days for display, starting from Sunday
+  const loadHabits = async () => {
+    const userHabits = await habitService.getUserHabits();
+    setHabits(userHabits);
+  };
+
+  const handleAddHabit = async (e) => {
+    e.preventDefault();
+    if (newHabitData.name.trim()) {
+      const success = await habitService.addHabit(newHabitData);
+      if (success) {
+        await loadHabits();
+        setNewHabitData({
+          name: '',
+          startDate: new Date().toISOString().split('T')[0]
+        });
+      }
+    }
+  };
+
+  const handleUpdateHabit = async (e) => {
+    e.preventDefault();
+    if (newHabitData.name.trim()) {
+      const success = await habitService.updateHabit(editingHabit.id, {
+        name: newHabitData.name.trim(),
+        startDate: newHabitData.startDate
+      });
+      if (success) {
+        await loadHabits();
+        setEditingHabit(null);
+        setNewHabitData({
+          name: '',
+          startDate: new Date().toISOString().split('T')[0]
+        });
+      }
+    }
+  };
+
+  const handleDeleteHabit = async (habitId) => {
+    if (window.confirm('Are you sure you want to delete this habit?')) {
+      const success = await habitService.deleteHabit(habitId);
+      if (success) {
+        await loadHabits();
+      }
+    }
+  };
+
+  const handleEditHabit = (habit) => {
+    setEditingHabit(habit);
+    setNewHabitData({
+      name: habit.name,
+      startDate: habit.startDate
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingHabit(null);
+    setNewHabitData({
+      name: '',
+      startDate: new Date().toISOString().split('T')[0]
+    });
+  };
+
   const getLast7Days = () => {
     const dates = [];
     const today = new Date();
@@ -45,89 +100,6 @@ function HabitTracker() {
     }
     
     return dates;
-  };
-
-  const handleAddHabit = (e) => {
-    e.preventDefault();
-    if (newHabitData.name.trim()) {
-      setHabits([...habits, { 
-        id: Date.now(), 
-        name: newHabitData.name.trim(), 
-        completions: {},
-        streak: 0,
-        startDate: newHabitData.startDate
-      }]);
-      setNewHabitData({
-        name: '',
-        startDate: new Date().toISOString().split('T')[0]
-      });
-    }
-  };
-
-  const markComplete = (habitId, date) => {
-    setHabits(
-      habits.map(habit => {
-        if (habit.id === habitId) {
-          const newCompletions = { ...habit.completions };
-          if (newCompletions[date]) {
-            delete newCompletions[date]; // Toggle completion
-          } else {
-            newCompletions[date] = true;
-          }
-          
-          // Calculate streak based on consecutive days completed
-          const today = new Date().toISOString().split('T')[0];
-          let currentStreak = 0;
-          let checkDate = new Date(today);
-          
-          while (newCompletions[checkDate.toISOString().split('T')[0]]) {
-            currentStreak++;
-            checkDate.setDate(checkDate.getDate() - 1);
-          }
-
-          return { ...habit, completions: newCompletions, streak: currentStreak };
-        }
-        return habit;
-      })
-    );
-  };
-
-  const handleEditHabit = (habit) => {
-    setEditingHabit(habit);
-    setNewHabitData({
-      name: habit.name,
-      startDate: habit.startDate
-    });
-  };
-
-  const handleUpdateHabit = (e) => {
-    e.preventDefault();
-    if (newHabitData.name.trim()) {
-      setHabits(habits.map(habit => 
-        habit.id === editingHabit.id 
-          ? { ...habit, name: newHabitData.name.trim(), startDate: newHabitData.startDate }
-          : habit
-      ));
-      setEditingHabit(null);
-      setNewHabitData({
-        name: '',
-        startDate: new Date().toISOString().split('T')[0]
-      });
-    }
-  };
-
-  const handleDeleteHabit = (habitId) => {
-    if (window.confirm('Are you sure you want to delete this habit?')) {
-      setHabits(habits.filter(habit => habit.id !== habitId));
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingHabit(null);
-    setNewHabitData({
-      name: '',
-      startDate: new Date().toISOString().split('T')[0]
-    });
   };
 
   const last7Days = getLast7Days();
@@ -155,6 +127,26 @@ function HabitTracker() {
         </div>
       </div>
     );
+  };
+
+  const markComplete = async (habitId, date) => {
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    const newCompletions = { ...habit.completions };
+    if (newCompletions[date]) {
+      delete newCompletions[date];
+    } else {
+      newCompletions[date] = true;
+    }
+
+    const success = await habitService.updateHabit(habitId, {
+      completions: newCompletions
+    });
+
+    if (success) {
+      await loadHabits();
+    }
   };
 
   return (
