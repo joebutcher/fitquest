@@ -38,12 +38,17 @@ function LoginPage() {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (resetEmail) {
-      const success = await resetPassword(resetEmail);
-      if (success) {
-        setResetMessage('Password reset email sent! Check your inbox.');
-      } else {
-        setResetMessage('Error sending reset email. Please try again.');
+    const email = prompt('Enter your email address:');
+    if (email) {
+      try {
+        const success = await resetPassword(email);
+        if (success) {
+          alert('Password reset email sent! Please check your inbox and spam folder.');
+        } else {
+          alert('Error sending reset email. Please try again.');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
       }
     }
   };
@@ -86,15 +91,9 @@ function LoginPage() {
           Continue with Google
         </button>
         <button
-          onClick={() => {
-            const email = prompt('Enter your email address:');
-            if (email) {
-              setResetEmail(email);
-              handleResetPassword(new Event('click'));
-            }
-          }}
+          onClick={handleResetPassword}
           type="button"
-          className="text-blue-500 hover:text-blue-700 text-sm"
+          className="mt-2 text-blue-500 hover:text-blue-700 text-sm block w-full text-center"
         >
           Forgot Password?
         </button>

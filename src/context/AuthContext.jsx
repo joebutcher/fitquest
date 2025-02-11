@@ -74,9 +74,13 @@ export function AuthProvider({ children }) {
 
   const resetPassword = async (email) => {
     try {
+      setError(null);
+      console.log('Attempting to send reset email to:', email);
       await sendPasswordResetEmail(auth, email);
+      console.log('Reset email sent successfully');
       return true;
     } catch (error) {
+      console.error('Error sending reset email:', error);
       setError(error.message);
       return false;
     }
