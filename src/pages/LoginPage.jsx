@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 function LoginPage() {
-  const { login, signInWithGoogle } = useContext(AuthContext);
+  const { login, signInWithGoogle, resetPassword } = useContext(AuthContext);
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -11,6 +11,8 @@ function LoginPage() {
     password: ''
   });
   const [error, setError] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const handleChange = (e) => {
     setFormData({...formData, [e.target.name]: e.target.value});
@@ -31,6 +33,18 @@ function LoginPage() {
     const success = await signInWithGoogle();
     if (success) {
       navigate('/dashboard');
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (resetEmail) {
+      const success = await resetPassword(resetEmail);
+      if (success) {
+        setResetMessage('Password reset email sent! Check your inbox.');
+      } else {
+        setResetMessage('Error sending reset email. Please try again.');
+      }
     }
   };
 
@@ -70,6 +84,19 @@ function LoginPage() {
         >
           <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
           Continue with Google
+        </button>
+        <button
+          onClick={() => {
+            const email = prompt('Enter your email address:');
+            if (email) {
+              setResetEmail(email);
+              handleResetPassword(new Event('click'));
+            }
+          }}
+          type="button"
+          className="text-blue-500 hover:text-blue-700 text-sm"
+        >
+          Forgot Password?
         </button>
         <p className="mt-4 text-center">
           Don't have an account? <Link to="/signup" className="text-blue-500">Sign up</Link>
